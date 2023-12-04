@@ -1,6 +1,6 @@
 package Server.Integration;
 
-public class ImageProcessRequest {
+public class ImageProcessRequestBody {
 
 
     private double[] signal;
@@ -11,7 +11,7 @@ public class ImageProcessRequest {
     private boolean gain;
     private double gainValue = 0;
 
-    public ImageProcessRequest(){}
+    public ImageProcessRequestBody(){}
 
     public double[] getSignal() {
         return signal;

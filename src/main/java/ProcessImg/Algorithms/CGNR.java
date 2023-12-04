@@ -8,7 +8,6 @@ public class CGNR extends CGALG {
 
     public static int algorithm(DoubleMatrix H, DoubleMatrix g, DoubleMatrix result){
         int numberIteractions = 0;
-        System.out.println("Executing CGNR!");
         DoubleMatrix f = DoubleMatrix.zeros(H.columns);
         DoubleMatrix r = g.sub(H.mmul(f));
 
@@ -59,7 +58,6 @@ public class CGNR extends CGALG {
         }while (error > 1e-4);
 
         result.copy(f);
-        System.out.println("CGNR Finalized!");
         return numberIteractions;
     }
 

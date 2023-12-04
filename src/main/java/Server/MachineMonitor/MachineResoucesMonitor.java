@@ -41,7 +41,7 @@ public class MachineResoucesMonitor extends Thread{
     /**
      * Termina e execução da thread.
      */
-    public void stopRunning(){
+    public synchronized void stopRunning(){
         isRunning = false;
     }
 

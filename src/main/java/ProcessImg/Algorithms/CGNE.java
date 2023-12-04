@@ -7,7 +7,6 @@ public class CGNE extends CGALG {
     //H é a matriz modelo e g é o vetor de sinal
     public static int algorithm(DoubleMatrix H, DoubleMatrix g, DoubleMatrix result){
         int numberIteractions = 0;
-        System.out.println("Executing CGNE!");
 
         DoubleMatrix f = DoubleMatrix.zeros(H.columns);
         DoubleMatrix r = g.sub(H.mmul(f));
@@ -50,7 +49,6 @@ public class CGNE extends CGALG {
         }while (error > 1e-4 );
 
         result.copy(f);
-        System.out.println("CGNE Finalized!");
         return numberIteractions;
     }
 }

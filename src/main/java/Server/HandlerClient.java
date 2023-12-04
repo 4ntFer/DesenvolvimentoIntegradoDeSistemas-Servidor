@@ -4,8 +4,8 @@ import ProcessImg.Algorithms.CGNE;
 import ProcessImg.Algorithms.CGNR;
 import ProcessImg.Image;
 import Server.Integration.HttpRequest;
-import Server.Integration.ImageProcessRequest;
-import Server.Integration.ServerResponse;
+import Server.Integration.ImageProcessRequestBody;
+import Server.Integration.ServerResponseBody;
 import Server.MachineMonitor.MachineResoucesMonitor;
 import Server.MachineMonitor.MonitorStillActiveExcpetion;
 import com.google.gson.Gson;
@@ -13,12 +13,10 @@ import com.sun.management.OperatingSystemMXBean;
 import org.jblas.DoubleMatrix;
 import utils.ServerResouces;
 
-import javax.swing.plaf.synth.SynthTextAreaUI;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +36,7 @@ public class HandlerClient extends Thread{
         this.inputStream = clientSocket.getInputStream();
         this.outputStream = clientSocket.getOutputStream();
         OSMXbean = operatingSystemMXBean;
-        System.out.println("New connection accepted.");
+        System.out.println(super.getId()+ ":" + "New connection accepted.");
 
         start();
     }
@@ -57,28 +55,75 @@ public class HandlerClient extends Thread{
                 String json = new String(request.getBody());
                 byte[] image;
                 if(!json.equals("")) {
-                    ImageProcessRequest solicitation =
+                    ImageProcessRequestBody solicitation =
                             new Gson().fromJson(
                                     json,
-                                    ImageProcessRequest.class
+                                    ImageProcessRequestBody.class
                             );
 
                     /**
                      * Processando a imagem
                      */
-                    getResponse(solicitation);
+
+                    ServerResponseBody responseBody = getResponse(solicitation);
+                    System.out.println(super.getId()+ ": " + "Send 200 OK response with image");
+                    sendResponse(responseBody.getJson());
 
                     //TODO: bloqueio caso maquina não tenha recurso disponiveis para o processamento
+                }else{
+                    System.out.println(super.getId()+ ":" + "Send 404 reponse");
+                    sendReponse404();
                 }
 
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        System.out.println(super.getId()+ ": " + "Finalizing thread");
+    }
+    private void sendReponse404() throws IOException {
+        StringBuilder responseMetadata = new StringBuilder();
+
+        responseMetadata.append("HTTP/1.1 404 Not Found\r\n");
+
+        responseMetadata.append("\r\n");
+
+        outputStream.write(responseMetadata.toString().getBytes(StandardCharsets.UTF_8));
+    }
+    private void sendResponse(String body) throws IOException {
+        String contentType = "application/json";
+        int contentLength = body.getBytes(StandardCharsets.UTF_8).length;
+        StringBuilder responseMetadata = new StringBuilder();
+
+        responseMetadata.append("HTTP/1.1 200 OK\r\n");
+        responseMetadata.append("Content-Type: "+ contentType +"\r\n");
+        responseMetadata.append("Content-Length: "+ contentLength + "\r\n");
+
+        responseMetadata.append("\r\n");
+        responseMetadata.append(body);
+
+        outputStream.write(responseMetadata.toString().getBytes(StandardCharsets.UTF_8));
     }
 
+    private HttpRequest readRequest() throws IOException {
+        /**
+         * Lendo mensagem HTTP.
+         */
 
-    private ServerResponse getResponse(ImageProcessRequest solicitation){
+        StringBuilder result = new StringBuilder();
+
+        do {
+            result.append((char) inputStream.read());
+        } while (inputStream.available() > 0);
+
+        //System.out.println(result.toString());
+        return parseData(new ByteArrayInputStream(
+                result.toString().getBytes(StandardCharsets.UTF_8)
+        ));
+    }
+
+    private ServerResponseBody getResponse(ImageProcessRequestBody solicitation){
 
         /**
          * Atributos para a incialização do model da resposta.
@@ -90,9 +135,11 @@ public class HandlerClient extends Thread{
         String ends;
         double averageCpuUsage;
         double averageMemoryUsage;
+        double[] cpuUsages;
+        double[] memUsages;
         byte[] image;
 
-        ServerResponse response = new ServerResponse();
+        ServerResponseBody response = new ServerResponseBody();
 
         /**
          * Demais variaveis.
@@ -100,26 +147,47 @@ public class HandlerClient extends Thread{
         MachineResoucesMonitor machineResoucesMonitor = new MachineResoucesMonitor(OSMXbean);
 
         try {
+
             String[] aux = LocalDateTime.now().toString().split("T");
             starts = aux[0] + " " + aux[1];
+
+
             machineResoucesMonitor.start();
-            image = getImage(solicitation, response);
+
+            image = getImage(solicitation, response); /**Executing algorithm**/
+
             machineResoucesMonitor.stopRunning();
+
+
             aux = LocalDateTime.now().toString().split("T");
             ends = aux[0] + " " + aux[1];
 
             averageCpuUsage = machineResoucesMonitor.getAvarageCpuUsage();
             averageMemoryUsage = machineResoucesMonitor.getAvarageMemoryUsage();
+            cpuUsages = new double[machineResoucesMonitor.getCpuUsage().size()];
+            memUsages = new double[machineResoucesMonitor.getMemoryUsage().size()];
 
-            System.out.println("Starts: " + starts + ", ends: "+ ends);
-            System.out.println("Avarage CPU usage: " + averageCpuUsage*100 +
-                    ", Avarage Memory Usage: " + averageMemoryUsage*100);
-            System.out.println("Iteractions number: " + response.getIteractions());
+            for(int i = 0 ; i < cpuUsages.length ; i ++){
+                cpuUsages[i] = machineResoucesMonitor.getCpuUsage().get(i);
+                memUsages[i] = machineResoucesMonitor.getMemoryUsage().get(i);
+            }
 
+            System.out.println(
+                    super.getId() + ":\n" +
+                    "\tStarts: " + starts + ", ends: "+ ends + "\n" +
+                    "\tAvarage CPU usage: " + averageCpuUsage*100 + ", Avarage Memory Usage: " + averageMemoryUsage*100 + "\n" +
+                    "\tIteractions number: " + response.getIteractions()
+            );
+
+            response.setUser(solicitation.getUser());
+            response.setAlgorithm(solicitation.getAlgorithm());
+            response.setPixels(solicitation.getDimensions());
             response.setStarts(starts);
             response.setEnds(ends);
             response.setAverageMemoryUsage(averageMemoryUsage);
             response.setAverageCpuUsage(averageCpuUsage);
+            response.setCpuUsages(cpuUsages);
+            response.setMemUsages(memUsages);
             response.setImage(image);
 
             return response;
@@ -136,9 +204,10 @@ public class HandlerClient extends Thread{
      * @param response A resposta que deverá ser retornada ao servidor (Irá preencher o campo de numero de iterações)
      * @return
      */
-    private byte[] getImage(ImageProcessRequest solicitation, ServerResponse response) throws IOException {
+    private byte[] getImage(ImageProcessRequestBody solicitation, ServerResponseBody response) throws IOException {
         String matrixPath = "res/MatrixesModels/" + solicitation.getMatrixModel() + ".csv";
 
+        System.out.println(super.getId() + ": " +" Opening matrix file.");
         double[][] matrix = ServerResouces.getMatrixData(matrixPath);
 
         DoubleMatrix H = new DoubleMatrix(matrix);
@@ -157,11 +226,19 @@ public class HandlerClient extends Thread{
 
         switch (solicitation.getAlgorithm()){
             case "CGNE":
+
+                System.out.println(super.getId() + ": Executing CGNE");
                 iteractions =  CGNE.algorithm(H,g, result);
+                System.out.println(super.getId() + ": CGNE finalized");
+
                 break;
 
             case "CGNR":
+
+                System.out.println(super.getId() + ": Executing CGNR");
                 iteractions = CGNR.algorithm(H, g, result);
+                System.out.println(super.getId() + ": CGNR finalized");
+
                 break;
         }
 
@@ -179,22 +256,7 @@ public class HandlerClient extends Thread{
      * @return Requisição. null caso a mensagem http seja vazia.
      * @throws IOException
      */
-    private HttpRequest readRequest() throws IOException {
-        /**
-         * Lendo mensagem HTTP.
-         */
 
-        StringBuilder result = new StringBuilder();
-
-        do {
-            result.append((char) inputStream.read());
-        } while (inputStream.available() > 0);
-
-        //System.out.println(result.toString());
-        return parseData(new ByteArrayInputStream(
-                result.toString().getBytes(StandardCharsets.UTF_8)
-        ));
-    }
 
     /**
      * Desserealiza a mensasagem HTTP.
@@ -239,7 +301,6 @@ public class HandlerClient extends Thread{
                 String headerLine;
                 boolean foundBody = false;
                 while((headerLine = bufferedReader.readLine()) != null && !foundBody){
-
                     if(!headerLine.trim().isEmpty()){
                         lineValues = headerLine.split(":\\s");
 
@@ -255,7 +316,6 @@ public class HandlerClient extends Thread{
                     }
 
                 }
-
                 /**
                  * Lendo body.
                  */
@@ -263,7 +323,6 @@ public class HandlerClient extends Thread{
                 String body =  "{";
                 String bodyLine = "";
                 while((bodyLine = bufferedReader.readLine()) != null){
-
                     if(!bodyLine.trim().isEmpty())
                         body = body + bodyLine;
 

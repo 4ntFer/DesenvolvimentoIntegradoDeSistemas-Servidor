@@ -1,6 +1,6 @@
 package Server.Integration;
 
-public class ServerResponse {
+public class ServerResponseBody {
 
     //Head
     private String user;
@@ -11,11 +11,13 @@ public class ServerResponse {
     private String ends;
     private double averageCpuUsage;
     private double averageMemoryUsage;
+    private double[] cpuUsages;
+    private double[] memUsages;
 
     //Image
-    private byte[] Image;
+    private byte[] image;
 
-    public ServerResponse(
+    public ServerResponseBody(
             String user,
             String algorithm,
             String pixels,
@@ -36,10 +38,10 @@ public class ServerResponse {
         this.ends = ends;
         this.averageCpuUsage = averageCpuUsage;
         this.averageMemoryUsage = averageMemoryUsage;
-        Image = image;
+        this.image = image;
     }
 
-    public ServerResponse(){};
+    public ServerResponseBody(){};
 
 
     public void setUser(String user) {
@@ -75,7 +77,7 @@ public class ServerResponse {
     }
 
     public void setImage(byte[] image) {
-        Image = image;
+        this.image = image;
     }
 
     public String getUser() {
@@ -110,7 +112,61 @@ public class ServerResponse {
         return averageMemoryUsage;
     }
 
+    public void setCpuUsages(double[] cpuUsages) {
+        this.cpuUsages = cpuUsages;
+    }
+
+    public void setMemUsages(double[] memUsages) {
+        this.memUsages = memUsages;
+    }
+
+
     public byte[] getImage() {
-        return Image;
+        return image;
+    }
+
+    public String getJson(){
+            String json = "{\n" +
+                    "\"user\" : " + "\""+ user +"\",\n" +
+                    "\"algorithm\" : " + "\""+ algorithm +"\",\n" +
+                    "\"pixels\" : " + "\""+ pixels +"\",\n" +
+                    "\"iteractions\" : " + iteractions + ",\n" +
+                    "\"starts\" : " + "\""+ starts +"\",\n" +
+                    "\"ends\" : " + "\""+ ends +"\",\n" +
+                    "\"avarageCPU\" :" + averageCpuUsage + ",\n" +
+                    "\"avarageMEM\" :" + averageMemoryUsage + ",\n";
+
+            String cpuUsage = "\"cpuUsages\" : [";
+            String memUsage = "\"memUsages\" : [";
+            String imageBytes = "\"imageBytes\" : [";
+
+            for(int i = 0 ; i < this.cpuUsages.length ; i ++){
+                cpuUsage += this.cpuUsages[i];
+                memUsage += this.memUsages[i];
+
+                if(i + 1 != this.cpuUsages.length){
+                    cpuUsage += ", ";
+                    memUsage += ", ";
+                }else{
+                    cpuUsage += "]";
+                    memUsage += "]";
+                }
+            }
+
+            json += cpuUsage +", \n" + memUsage + ", \n";
+
+            for(int i = 0; i < image.length ; i++){
+                imageBytes += image[i];
+
+                if(i + 1 != image.length){
+                    imageBytes += ", ";
+                }else{
+                    imageBytes += "]";
+                }
+            }
+
+            json += imageBytes + "\n}";
+
+            return json;
     }
 }
