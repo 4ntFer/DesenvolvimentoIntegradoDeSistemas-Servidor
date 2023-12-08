@@ -4,7 +4,7 @@ import ProcessImg.Algorithms.CGNE;
 import ProcessImg.Algorithms.CGNR;
 import ProcessImg.Image;
 import Server.Integration.HttpRequest;
-import Server.Integration.ImageProcessRequestBody;
+import Server.Integration.ImageProcessSolicitation;
 import Server.Integration.ServerResponseBody;
 import Server.MachineMonitor.MachineResoucesMonitor;
 import Server.MachineMonitor.MonitorStillActiveExcpetion;
@@ -25,24 +25,20 @@ public class HandlerClient extends Thread{
     private OutputStream outputStream;
     private InputStream inputStream;
     private OperatingSystemMXBean OSMXbean;
+    private ImageProcessSolicitation solicitation = null;
 
     /**
      * @param clientSocket Socket do cliente.
-     * @param operatingSystemMXBean Monitor de recursos do sistema.
      * @throws IOException
      */
-    public HandlerClient(Socket clientSocket, OperatingSystemMXBean operatingSystemMXBean) throws IOException {
+    public HandlerClient(Socket clientSocket) throws IOException {
         this.clientSocket = clientSocket;
         this.inputStream = clientSocket.getInputStream();
         this.outputStream = clientSocket.getOutputStream();
-        OSMXbean = operatingSystemMXBean;
-        System.out.println(super.getId()+ ":" + "New connection accepted.");
+        OSMXbean = Singletons.getSystemMXBean();
+        System.out.println(super.getId()+ ":" + "New connection accepted, " + clientSocket.getInetAddress() + ":" + clientSocket.getPort());
 
-        start();
-    }
 
-    @Override
-    public void run(){
         HttpRequest request = null;
         try {
             request = readRequest();
@@ -55,21 +51,13 @@ public class HandlerClient extends Thread{
                 String json = new String(request.getBody());
                 byte[] image;
                 if(!json.equals("")) {
-                    ImageProcessRequestBody solicitation =
+                     solicitation =
                             new Gson().fromJson(
                                     json,
-                                    ImageProcessRequestBody.class
+                                    ImageProcessSolicitation.class
                             );
 
-                    /**
-                     * Processando a imagem
-                     */
-
-                    ServerResponseBody responseBody = getResponse(solicitation);
-                    System.out.println(super.getId()+ ": " + "Send 200 OK response with image");
-                    sendResponse(responseBody.getJson());
-
-                    //TODO: bloqueio caso maquina não tenha recurso disponiveis para o processamento
+                     Singletons.getTokensManager().requestProcessing(solicitation.getUser(),this);
                 }else{
                     System.out.println(super.getId()+ ":" + "Send 404 reponse");
                     sendReponse404();
@@ -79,13 +67,36 @@ public class HandlerClient extends Thread{
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void run(){
+        try {
+
+            /**
+             * Processando a imagem
+             */
+
+            ServerResponseBody responseBody = getResponse(solicitation);
+            System.out.println(super.getId()+ ": " + "Send 200 OK response with image");
+            sendResponse(responseBody.getJson());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         System.out.println(super.getId()+ ": " + "Finalizing thread");
+
+        try {
+            clientSocket.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     private void sendReponse404() throws IOException {
         StringBuilder responseMetadata = new StringBuilder();
 
         responseMetadata.append("HTTP/1.1 404 Not Found\r\n");
+        responseMetadata.append("Access-Control-Allow-Origin: *\r\n");
 
         responseMetadata.append("\r\n");
 
@@ -99,6 +110,7 @@ public class HandlerClient extends Thread{
         responseMetadata.append("HTTP/1.1 200 OK\r\n");
         responseMetadata.append("Content-Type: "+ contentType +"\r\n");
         responseMetadata.append("Content-Length: "+ contentLength + "\r\n");
+        responseMetadata.append("Access-Control-Allow-Origin: *\r\n");
 
         responseMetadata.append("\r\n");
         responseMetadata.append(body);
@@ -123,7 +135,7 @@ public class HandlerClient extends Thread{
         ));
     }
 
-    private ServerResponseBody getResponse(ImageProcessRequestBody solicitation){
+    private ServerResponseBody getResponse(ImageProcessSolicitation solicitation){
 
         /**
          * Atributos para a incialização do model da resposta.
@@ -204,7 +216,7 @@ public class HandlerClient extends Thread{
      * @param response A resposta que deverá ser retornada ao servidor (Irá preencher o campo de numero de iterações)
      * @return
      */
-    private byte[] getImage(ImageProcessRequestBody solicitation, ServerResponseBody response) throws IOException {
+    private byte[] getImage(ImageProcessSolicitation solicitation, ServerResponseBody response) throws IOException {
         String matrixPath = "res/MatrixesModels/" + solicitation.getMatrixModel() + ".csv";
 
         System.out.println(super.getId() + ": " +" Opening matrix file.");
@@ -338,5 +350,9 @@ public class HandlerClient extends Thread{
             throw new RuntimeException(e);
         }
         return null;
+    }
+
+    public String getImageSize(){
+        return solicitation.getDimensions();
     }
 }

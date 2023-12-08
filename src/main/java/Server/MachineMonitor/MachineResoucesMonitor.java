@@ -129,4 +129,8 @@ public class MachineResoucesMonitor extends Thread{
     public boolean isRunning() {
         return isRunning;
     }
+
+    public double currentCpuAvaible(){
+        return 1f - systemMXBean.getCpuLoad();
+    }
 }

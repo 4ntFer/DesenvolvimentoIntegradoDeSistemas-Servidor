@@ -9,7 +9,6 @@ import java.net.ServerSocket;
 public class main {
     public static void main(String args[]){
         ServerSocket serverSocket;
-        OperatingSystemMXBean osMXBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
 
         try {
             serverSocket = new ServerSocket(4242);
@@ -17,7 +16,7 @@ public class main {
             while(true){
                 //TODO: Gerenciamento de recursos da máquina
 
-                new HandlerClient(serverSocket.accept(), osMXBean);
+                new HandlerClient(serverSocket.accept());
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
