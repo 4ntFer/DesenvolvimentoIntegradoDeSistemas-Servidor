@@ -67,6 +67,7 @@ public class HandlerClient extends Thread{
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
     }
 
     @Override
@@ -85,12 +86,6 @@ public class HandlerClient extends Thread{
         }
 
         System.out.println(super.getId()+ ": " + "Finalizing thread");
-
-        try {
-            clientSocket.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
     private void sendReponse404() throws IOException {
         StringBuilder responseMetadata = new StringBuilder();
