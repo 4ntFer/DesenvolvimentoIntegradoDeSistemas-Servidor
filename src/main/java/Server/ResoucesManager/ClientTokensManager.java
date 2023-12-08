@@ -60,6 +60,7 @@ public class ClientTokensManager extends Thread {
                 if (authorizesProcess(solicitation)) {
                     userRequests.get(allUsers.get(currentUser)).removeFirst();
                     client.get(solicitation).confirmAuthorization();
+                    currentUser++;
                     k = 10;
                 } else {
                     try {
@@ -74,10 +75,8 @@ public class ClientTokensManager extends Thread {
                 }
             }
 
-            if(currentUser == allUsers.size() -1 ){
+            if(currentUser <= allUsers.size()){
                 currentUser = 0;
-            }else{
-                currentUser++;
             }
         }
     }

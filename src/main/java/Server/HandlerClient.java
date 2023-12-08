@@ -50,11 +50,12 @@ public class HandlerClient extends Thread{
     public void run(){
         HttpRequest request = null;
         try {
+            System.out.println(super.getId()+ ":" + "Reading request");
             request = readRequest();
 
 
-            if(request != null){
 
+            if(request != null){
                 //System.out.println(new String(request.getBody()));
                 String json = new String(request.getBody());
                 byte[] image;
@@ -65,6 +66,8 @@ public class HandlerClient extends Thread{
                                     ImageProcessSolicitation.class
                             );
 
+                    System.out.println(super.getId()+ ":" + "Request is valide");
+
                     /**
                      * solicita acesso
                      */
@@ -73,7 +76,7 @@ public class HandlerClient extends Thread{
                     System.out.println(super.getId()+ ":" + "Wainting authorize");
                     while(!authirizated){
                         sleep(100*k);
-
+                        System.out.println(super.getId()+ ":" + "Wainting authorize");
                         if(k>1){k--;}
                     }
 
@@ -86,6 +89,7 @@ public class HandlerClient extends Thread{
                     sendResponse(responseBody.getJson());
 
                 }else{
+                    System.out.println(super.getId()+ ":" + "Request is not valide");
                     System.out.println(super.getId()+ ":" + "Send 404 reponse");
                     sendReponse404();
                 }
