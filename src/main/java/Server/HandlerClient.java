@@ -26,6 +26,7 @@ public class HandlerClient extends Thread{
     private InputStream inputStream;
     private OperatingSystemMXBean OSMXbean;
     private ImageProcessSolicitation solicitation = null;
+    private boolean authirizated = false;
 
     /**
      * @param clientSocket Socket do cliente.
@@ -36,14 +37,17 @@ public class HandlerClient extends Thread{
         this.inputStream = clientSocket.getInputStream();
         this.outputStream = clientSocket.getOutputStream();
         OSMXbean = Singletons.getSystemMXBean();
-        System.out.println(super.getId()+ ":" + "New connection accepted, " + clientSocket.getInetAddress() + ":" + clientSocket.getPort());
+        System.out.println(super.getId()+ ":" + "New connection accepted.");
 
+        start();
+    }
 
+    @Override
+    public void run(){
         HttpRequest request = null;
         try {
             request = readRequest();
 
-            //TODO: Responder requisições invalidas com 404
 
             if(request != null){
 
@@ -51,13 +55,31 @@ public class HandlerClient extends Thread{
                 String json = new String(request.getBody());
                 byte[] image;
                 if(!json.equals("")) {
-                     solicitation =
+                    ImageProcessSolicitation solicitation =
                             new Gson().fromJson(
                                     json,
                                     ImageProcessSolicitation.class
                             );
 
-                     Singletons.getTokensManager().requestProcessing(solicitation.getUser(),this);
+                    /**
+                     * solicita acesso
+                     */
+                    Singletons.getTokensManager().requestsAcess(solicitation, this);
+                    int k = 10;
+                    while(!authirizated){
+                        sleep(1000*k);
+
+                        if(k>1){k--;}
+                    }
+
+                    /**
+                     * Processando a imagem
+                     */
+
+                    ServerResponseBody responseBody = getResponse(solicitation);
+                    System.out.println(super.getId()+ ": " + "Send 200 OK response with image");
+                    sendResponse(responseBody.getJson());
+
                 }else{
                     System.out.println(super.getId()+ ":" + "Send 404 reponse");
                     sendReponse404();
@@ -66,22 +88,7 @@ public class HandlerClient extends Thread{
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-
-    }
-
-    @Override
-    public void run(){
-        try {
-
-            /**
-             * Processando a imagem
-             */
-
-            ServerResponseBody responseBody = getResponse(solicitation);
-            System.out.println(super.getId()+ ": " + "Send 200 OK response with image");
-            sendResponse(responseBody.getJson());
-        } catch (IOException e) {
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
@@ -349,5 +356,9 @@ public class HandlerClient extends Thread{
 
     public String getImageSize(){
         return solicitation.getDimensions();
+    }
+
+    public void confirmAuthorization(){
+        authirizated = true;
     }
 }

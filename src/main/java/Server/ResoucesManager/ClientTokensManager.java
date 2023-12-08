@@ -1,9 +1,21 @@
 package Server.ResoucesManager;
 
+import ProcessImg.Algorithms.CGNE;
+import ProcessImg.Algorithms.CGNR;
+import ProcessImg.Image;
 import Server.HandlerClient;
+import Server.Integration.ImageProcessSolicitation;
+import Server.Integration.ServerResponseBody;
+import Server.MachineMonitor.MachineResoucesMonitor;
+import Server.MachineMonitor.MonitorStillActiveExcpetion;
 import Server.Singletons;
 import com.sun.management.OperatingSystemMXBean;
+import org.jblas.DoubleMatrix;
+import utils.ServerResouces;
 
+import java.io.IOException;
+import java.security.AllPermission;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class ClientTokensManager extends Thread {
@@ -16,73 +28,68 @@ public class ClientTokensManager extends Thread {
     private static final double SIZE_30_30_CPU = 0.25f;
 
     private OperatingSystemMXBean systemMXBean;
-    private HashMap<String, LinkedList<HandlerClient>> userRequests;// <Usuario, fila>
+    private HashMap<String, LinkedList<ImageProcessSolicitation>> userRequests;// <Usuario, fila de solicitaçÕes
+    private HashMap<ImageProcessSolicitation, HandlerClient> client;// <solicitação, interface com cliente>
     private ArrayList<String> allUsers; // identificador de todos os usuarios
 
-    public ClientTokensManager() {
-        systemMXBean = Singletons.getSystemMXBean();
-        userRequests= new HashMap<>();
-        allUsers = new ArrayList<>();
 
-        this.start();
+    public ClientTokensManager(){
+        userRequests = new HashMap<>();
+        client = new HashMap<>();
+        allUsers = new ArrayList<>();
+        systemMXBean = Singletons.getSystemMXBean();
+
+        start();
     }
 
     @Override
     public void run(){
-        /** Implementação de RoadRobin **/
-        boolean flag = false;
-        while (true) {
-            flag = false;
-            System.out.println("ativa");
-            for (int i = 0; i < allUsers.size(); i++) {
-                String user = allUsers.get(i);
-                HandlerClient handlerClient = null;
-                if (userRequests.get(user) != null) {
-                    if (userRequests.get(user).size() != 0)
-                        handlerClient = userRequests.get(user).removeFirst();
-                    else userRequests.remove(user);
+        int currentUser = 0;
+        int k = 10;
+        while(true){
+            /** Para cada usuario**/
+            ImageProcessSolicitation solicitation = null;
+            LinkedList<ImageProcessSolicitation> fila = userRequests.get(allUsers.get(currentUser));
 
+            if(fila != null){
+                solicitation = fila.peekFirst();
+            }
+
+            if(solicitation!=null)
+            {
+                if (authorizesProcess(solicitation)) {
+                    userRequests.get(allUsers.get(currentUser)).removeFirst();
+                    client.get(solicitation).confirmAuthorization();
+                    k = 10;
+                } else {
                     try {
-                        if (handlerClient != null)
-                            waitResoucesGrant(handlerClient);
+                        sleep(1000 * k);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                } else {
-                    userRequests.put(user, new LinkedList<>());
-                }
 
-                flag = true;
+                    if (k > 1) {
+                        k--;
+                    }
+                }
             }
 
-            if(flag == false){
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+            if(currentUser == allUsers.size() -1 ){
+                currentUser = 0;
+            }else{
+                currentUser++;
             }
         }
     }
 
-
-
-    /**
-     * Espera até que seja consedido o recurso ao cliente, chamado ao longo da execução da thread
-     *
-     * @param handlerClient
-     * @throws InterruptedException
-     */
-    private void waitResoucesGrant(HandlerClient handlerClient) throws InterruptedException {
-        HandlerClient buffer = handlerClient;
-
+    private boolean authorizesProcess(ImageProcessSolicitation solicitation){
         /**
          * Verifica se há recursos para o processamento
          */
         double necessaryCPU = 0;
         long necessaryMEM = 0;
 
-        switch (buffer.getImageSize()) {
+        switch (solicitation.getDimensions()) {
             case "60x60":
                 necessaryCPU = SIZE_60_60_CPU;
                 necessaryMEM = SIZE_60_60_MEM;
@@ -93,40 +100,29 @@ public class ClientTokensManager extends Thread {
                 break;
         }
 
-        while (buffer != null) {
-            if (
-                    (1f - systemMXBean.getCpuLoad()) * 0.75 > necessaryCPU &&
-                            Runtime.getRuntime().freeMemory() * 0.75 > necessaryMEM
-            ) {
-                buffer.start();
-                buffer = null;
+        if (
+                (1f - systemMXBean.getCpuLoad()) * 0.75 > necessaryCPU &&
+                        Runtime.getRuntime().freeMemory() * 0.75 > necessaryMEM
+        ) {
+            return true;
             } else {
-                try {
-                    sleep(10000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                return false;
             }
-        }
     }
+    public void requestsAcess(ImageProcessSolicitation solicitation, HandlerClient client){
+        String user = solicitation.getUser();
+        allUsers.add(user);
 
-    /**
-     * Insere um processamento na fila;
-     *
-     * @param user          Identificador do usuário
-     * @param handlerClient objeto resposável pelo processamento.
-     */
-    public synchronized void requestProcessing(String user, HandlerClient handlerClient) {
-        if (userRequests.get(user) == null) {
-            allUsers.add(user);
-            LinkedList list = new LinkedList();
-            list.add(handlerClient);
+        if(userRequests.containsKey(user)){
+            userRequests.get(user).add(solicitation);
+        }else{
+            LinkedList<ImageProcessSolicitation> list = new LinkedList<ImageProcessSolicitation>();
+            list.add(solicitation);
             userRequests.put(user, list);
-        } else {
-
-            userRequests.get(user).add(handlerClient);
         }
 
-        notify();
+
+        this.client.put(solicitation, client);
     }
+
 }
