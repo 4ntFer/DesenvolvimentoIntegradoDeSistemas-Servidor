@@ -13,10 +13,14 @@ import com.sun.management.OperatingSystemMXBean;
 import org.jblas.DoubleMatrix;
 import utils.ServerResouces;
 
+import javax.xml.xpath.XPath;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,8 +70,9 @@ public class HandlerClient extends Thread{
                      */
                     Singletons.getTokensManager().requestsAcess(solicitation, this);
                     int k = 10;
+                    System.out.println(super.getId()+ ":" + "Wainting authorize");
                     while(!authirizated){
-                        sleep(1000*k);
+                        sleep(100*k);
 
                         if(k>1){k--;}
                     }
@@ -151,7 +156,7 @@ public class HandlerClient extends Thread{
         double averageMemoryUsage;
         double[] cpuUsages;
         double[] memUsages;
-        byte[] image;
+        Image image;
 
         ServerResponseBody response = new ServerResponseBody();
 
@@ -202,7 +207,14 @@ public class HandlerClient extends Thread{
             response.setAverageCpuUsage(averageCpuUsage);
             response.setCpuUsages(cpuUsages);
             response.setMemUsages(memUsages);
-            response.setImage(image);
+            response.setImage(image.toByteArray());
+
+            saveResponse(
+                    solicitation.getUser(),
+                    response.getMetaDatasJson(),
+                    response.getStarts().substring(0,10) +"-"+ Calendar.getInstance().getTimeInMillis(),
+                    image
+            );
 
             return response;
 
@@ -218,7 +230,7 @@ public class HandlerClient extends Thread{
      * @param response A resposta que deverá ser retornada ao servidor (Irá preencher o campo de numero de iterações)
      * @return
      */
-    private byte[] getImage(ImageProcessSolicitation solicitation, ServerResponseBody response) throws IOException {
+    private Image getImage(ImageProcessSolicitation solicitation, ServerResponseBody response) throws IOException {
         String matrixPath = "res/MatrixesModels/" + solicitation.getMatrixModel() + ".csv";
 
         System.out.println(super.getId() + ": " +" Opening matrix file.");
@@ -259,11 +271,10 @@ public class HandlerClient extends Thread{
         result = result.reshape(dimensionX, dimensionY);
 
         image = new Image(result);
-        image.saveImage();
 
         response.setIteractions(iteractions);
 
-        return image.toByteArray();
+        return image;
     }
 
     /**
@@ -354,6 +365,21 @@ public class HandlerClient extends Thread{
         return null;
     }
 
+    private void saveResponse(String user, String metadata, String time, Image image) throws IOException {
+        String path = "res/PreviousProcessing/" + user + "";
+        File dir = new File(path);
+
+        if(!dir.exists()){
+            dir.mkdirs();
+        }
+
+        dir = new File(path + "/" + time);
+        dir.mkdirs();
+
+        image.saveImage(path +"/"+ time);
+        Files.write(Path.of((path +"/"+ time +"/meta.txt")), metadata.getBytes());
+    }
+
     public String getImageSize(){
         return solicitation.getDimensions();
     }
@@ -361,4 +387,6 @@ public class HandlerClient extends Thread{
     public void confirmAuthorization(){
         authirizated = true;
     }
+
+
 }

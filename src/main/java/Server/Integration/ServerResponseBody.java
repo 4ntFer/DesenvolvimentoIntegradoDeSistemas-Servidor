@@ -169,4 +169,38 @@ public class ServerResponseBody {
 
             return json;
     }
+
+    public String getMetaDatasJson(){
+        String json = "{\n" +
+                "\"user\" : " + "\""+ user +"\",\n" +
+                "\"algorithm\" : " + "\""+ algorithm +"\",\n" +
+                "\"pixels\" : " + "\""+ pixels +"\",\n" +
+                "\"iteractions\" : " + iteractions + ",\n" +
+                "\"starts\" : " + "\""+ starts +"\",\n" +
+                "\"ends\" : " + "\""+ ends +"\",\n" +
+                "\"avarageCPU\" :" + averageCpuUsage + ",\n" +
+                "\"avarageMEM\" :" + averageMemoryUsage + ",\n";
+
+        String cpuUsage = "\"cpuUsages\" : [";
+        String memUsage = "\"memUsages\" : [";
+        String imageBytes = "\"imageBytes\" : [";
+
+        for(int i = 0 ; i < this.cpuUsages.length ; i ++){
+            cpuUsage += this.cpuUsages[i];
+            memUsage += this.memUsages[i];
+
+            if(i + 1 != this.cpuUsages.length){
+                cpuUsage += ", ";
+                memUsage += ", ";
+            }else{
+                cpuUsage += "]";
+                memUsage += "]";
+            }
+        }
+
+        json += cpuUsage +", \n" + memUsage + ", \n}";
+
+
+        return json;
+    }
 }

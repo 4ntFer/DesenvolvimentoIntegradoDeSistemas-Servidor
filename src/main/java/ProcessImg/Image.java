@@ -41,8 +41,8 @@ public class Image {
         return bos.toByteArray();
     }
 
-    public void saveImage() throws IOException {
-        File file = new File("img.png");
+    public void saveImage(String path) throws IOException {
+        File file = new File(path + "/img.png");
         ImageIO.write(buffImg, "png", file);
     }
 }

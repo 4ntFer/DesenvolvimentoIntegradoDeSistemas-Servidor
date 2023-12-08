@@ -63,7 +63,7 @@ public class ClientTokensManager extends Thread {
                     k = 10;
                 } else {
                     try {
-                        sleep(1000 * k);
+                        sleep(100 * k);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
