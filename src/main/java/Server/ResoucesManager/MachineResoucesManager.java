@@ -15,12 +15,18 @@ public class MachineResoucesManager extends Thread{
     private OperatingSystemMXBean systemMXBean = Singletons.getSystemMXBean();
     private ClientTokensManager tokenManager;
     private HandlerClient buffer = null;
+
+    public MachineResoucesManager(){
+        start();
+    }
     @Override
     public void run() {
         while (true){
             if(buffer == null){
                 try {
-                    wait();
+                    synchronized (this){
+                        wait();
+                    }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -64,8 +70,9 @@ public class MachineResoucesManager extends Thread{
      * Utilizado por terceiro para solicitar acesso aos recursos
      * @param handlerClient
      */
-    public void requestMachineResouces(HandlerClient handlerClient){
+    public synchronized void requestMachineResouces(HandlerClient handlerClient){
         this.buffer = handlerClient;
+        System.out.println(super.isAlive());
         notify();
     }
 
