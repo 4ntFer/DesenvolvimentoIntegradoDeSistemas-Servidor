@@ -21,11 +21,11 @@ import java.util.*;
 public class ClientTokensManager extends Thread {
     //TODO: Limitar tamanho da fila do cliente
 
-    private static final long SIZE_60_60_MEM = 7049672752L;
-    private static final long SIZE_30_30_MEM = 1379554848L;
+    private static final long SIZE_60_60_MEM = 7149672752L;
+    private static final long SIZE_30_30_MEM = 1579554848L;
 
-    private static final double SIZE_60_60_CPU = 0.50f;
-    private static final double SIZE_30_30_CPU = 0.25f;
+    private static final double SIZE_60_60_CPU = 0.70f;
+    private static final double SIZE_30_30_CPU = 0.40f;
 
     private OperatingSystemMXBean systemMXBean;
     private HashMap<String, LinkedList<ImageProcessSolicitation>> userRequests;// <Usuario, fila de solicitaçÕes
@@ -44,41 +44,66 @@ public class ClientTokensManager extends Thread {
 
     @Override
     public void run(){
-        int currentUser = 0;
-        int k = 10;
-        while(true){
-            /** Para cada usuario**/
-            ImageProcessSolicitation solicitation = null;
-            LinkedList<ImageProcessSolicitation> fila = userRequests.get(allUsers.get(currentUser));
+            int currentUser = 0;
+            int k = 10;
+            while (true) {
+                /** Para cada usuario**/
 
-            if(fila != null){
-                solicitation = fila.peekFirst();
-            }
+                if (!allUsers.isEmpty()) {
+                    ImageProcessSolicitation solicitation = null;
+                    LinkedList<ImageProcessSolicitation> fila = userRequests.get(allUsers.get(currentUser));
 
-            if(solicitation!=null)
-            {
-                if (authorizesProcess(solicitation)) {
-                    userRequests.get(allUsers.get(currentUser)).removeFirst();
-                    client.get(solicitation).confirmAuthorization();
-                    currentUser++;
-                    k = 10;
+                    if (fila != null) {
+                        solicitation = fila.peekFirst();
+                    }
+
+                    if (solicitation != null) {
+                        client.get(solicitation).confirmAuthorization();
+                        if (authorizesProcess(solicitation)) {
+                            userRequests.get(allUsers.get(currentUser)).removeFirst();
+                            client.get(solicitation).confirmAuthorization();
+                            client.remove(solicitation);
+
+
+                            if (userRequests.get(allUsers.get(currentUser)).isEmpty()) {
+                                userRequests.remove(allUsers.get(currentUser));
+                                allUsers.remove(currentUser);
+                            }
+
+                            try {
+                                sleep(2000);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            currentUser++;
+                            k = 1;
+                        } else {
+                            try {
+                                sleep(500 * k);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            if (k < 30) {
+                                k++;
+                            }
+                        }
+                    }
+
+                    if (currentUser >= allUsers.size()) {
+                        currentUser = 0;
+                    }
+
+                    System.gc();
                 } else {
                     try {
-                        sleep(100 * k);
+                        sleep(1000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-
-                    if (k > 1) {
-                        k--;
-                    }
                 }
             }
-
-            if(currentUser <= allUsers.size()){
-                currentUser = 0;
-            }
-        }
     }
 
     private boolean authorizesProcess(ImageProcessSolicitation solicitation){
@@ -98,17 +123,17 @@ public class ClientTokensManager extends Thread {
                 necessaryMEM = SIZE_30_30_MEM;
                 break;
         }
-
+        System.out.println((1.0 - systemMXBean.getCpuLoad()));
         if (
-                (1f - systemMXBean.getCpuLoad()) * 0.75 > necessaryCPU &&
-                        Runtime.getRuntime().freeMemory() * 0.75 > necessaryMEM
+                (1.0 - systemMXBean.getCpuLoad()) > necessaryCPU &&
+                        Runtime.getRuntime().freeMemory() > necessaryMEM
         ) {
             return true;
             } else {
                 return false;
             }
     }
-    public void requestsAcess(ImageProcessSolicitation solicitation, HandlerClient client){
+    public synchronized void requestsAcess(ImageProcessSolicitation solicitation, HandlerClient client){
         String user = solicitation.getUser();
         allUsers.add(user);
 
@@ -120,8 +145,8 @@ public class ClientTokensManager extends Thread {
             userRequests.put(user, list);
         }
 
-
         this.client.put(solicitation, client);
+
     }
 
 }

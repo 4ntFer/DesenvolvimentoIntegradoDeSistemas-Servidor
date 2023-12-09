@@ -72,12 +72,18 @@ public class HandlerClient extends Thread{
                      * solicita acesso
                      */
                     Singletons.getTokensManager().requestsAcess(solicitation, this);
-                    int k = 10;
+                    int k = 1;
                     System.out.println(super.getId()+ ":" + "Wainting authorize");
-                    while(!authirizated){
-                        sleep(100*k);
-                        System.out.println(super.getId()+ ":" + "Wainting authorize");
-                        if(k>1){k--;}
+
+                    /*Verifica periodicamente se o acesso foi autorizado*/
+                    /*while(!authirizated){
+                        sleep(1000*k);
+                        if(k<30){
+                            k++;
+                        }
+                    }*/
+                    synchronized (this) {
+                        this.wait();
                     }
 
                     /**
@@ -388,8 +394,11 @@ public class HandlerClient extends Thread{
         return solicitation.getDimensions();
     }
 
-    public void confirmAuthorization(){
+    public synchronized void confirmAuthorization(){
         authirizated = true;
+        synchronized (this) {
+            this.notify();
+        }
     }
 
 
