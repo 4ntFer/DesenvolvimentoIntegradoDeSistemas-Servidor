@@ -24,7 +24,7 @@ public class ClientTokensManager extends Thread {
     private static final long SIZE_60_60_MEM = 7149672752L;
     private static final long SIZE_30_30_MEM = 1579554848L;
 
-    private static final double SIZE_60_60_CPU = 0.70f;
+    private static final double SIZE_60_60_CPU = 0.75f;
     private static final double SIZE_30_30_CPU = 0.40f;
 
     private OperatingSystemMXBean systemMXBean;
@@ -58,7 +58,6 @@ public class ClientTokensManager extends Thread {
                     }
 
                     if (solicitation != null) {
-                        client.get(solicitation).confirmAuthorization();
                         if (authorizesProcess(solicitation)) {
                             userRequests.get(allUsers.get(currentUser)).removeFirst();
                             client.get(solicitation).confirmAuthorization();
@@ -71,7 +70,7 @@ public class ClientTokensManager extends Thread {
                             }
 
                             try {
-                                sleep(2000);
+                                sleep(5000);
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
@@ -123,9 +122,8 @@ public class ClientTokensManager extends Thread {
                 necessaryMEM = SIZE_30_30_MEM;
                 break;
         }
-        System.out.println((1.0 - systemMXBean.getCpuLoad()));
         if (
-                (1.0 - systemMXBean.getCpuLoad()) > necessaryCPU &&
+                (1.0 - systemMXBean.getCpuLoad() - necessaryCPU) >= 0.20 &&
                         Runtime.getRuntime().freeMemory() > necessaryMEM
         ) {
             return true;

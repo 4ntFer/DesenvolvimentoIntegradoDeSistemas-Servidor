@@ -229,6 +229,8 @@ public class HandlerClient extends Thread{
             return response;
 
         } catch (IOException e) {
+
+            System.out.println(solicitation.getMatrixModel() +", "+ solicitation.getDimensions() +", " + solicitation.getSignal());
             throw new RuntimeException(e);
         } catch (MonitorStillActiveExcpetion e) {
             throw new RuntimeException(e);
