@@ -52,7 +52,7 @@
 
 #### A comunicação entre o cliente e o servidor é parte essencial do problema. Uma vez que, muitas vezes, em aplicações reais, a máquina cliente não terá capacidade de processamento suficiente para a tarefa, então é trabalho do servidor executa-la quando o cliente requisitar.
 
-#### No caso abordado aqui, as matrizes modelo estão no servidor enquanto o sinal que originará a imagem estará no cliente. Para o envio desse sinal e algumas outras informações como identificação do usuário, dimensões da imagem resultante do sinal, matriz modelo a ser utilizada e algoritmo a ser utilizado, o cliente envia um arquivo no formato json para o servidor, é recebido e tratado.
+#### No caso abordado aqui, as matrizes modelo estão no servidor enquanto o sinal que originará a imagem estará no cliente. Para o envio desse sinal e algumas outras informações como identificação do usuário, dimensões da imagem resultante do sinal, matriz modelo a ser utilizada e algoritmo a ser utilizado, o cliente envia um arquivo no formato json para o servidor.
 
 #### A comunicação é feita por meio de trocas de mensagem HTTP. A implementação do lado servidor não utiliza nenhuma ferramenta para a troca dessas mensagens além daquelas ofericidas pelas bliotecas padrão do Java.
 
