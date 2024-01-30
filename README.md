@@ -76,7 +76,7 @@
 
 <img width= "100%" src="https://raw.githubusercontent.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/main/readmedis/diagramaDeEstadosConcorrentes.png"/>
 
-###### Diagrama de tarefas concorrente de HandleCliente e ResoucesManager.
+###### Diagrama de tarefas concorrente de HandleClient e ResoucesManager.
 
 <br/>
 
