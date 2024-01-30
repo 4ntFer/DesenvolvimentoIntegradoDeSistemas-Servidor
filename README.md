@@ -84,7 +84,7 @@
 
 # Gerenciamento de Recursos
 
-#### Em geral esse problema é tratado como uma fila, porém identificamos um problema não trivial nessa implementação ocasionado pelo acesso do usuário ao servidor. Basicamente, se um usuário realizar varias requisições consecutivas ele poderia monopolizar o processamento por um longo período de tempo, resultando em uma lentidão na resposta para aqueles usuários que fizessem requisições após isso.
+#### Em geral esse problema costuma ser tratado como uma fila, porém identificamos um problema não trivial nessa implementação ocasionado pelo acesso do usuário ao servidor. Basicamente, se um usuário realizar varias requisições consecutivas ele poderia monopolizar o processamento por um longo período de tempo, resultando em uma lentidão na resposta para aqueles usuários que fizessem requisições após isso.
 
 #### Por isso desenvolvemos uma solução diferente baseada no algoritmo de Round-Robin que evita esse problema. Nesse modelo, o servidor armazena uma lista de usuários ativos e associa a cada usuário da lista uma fila de requisiçÕes. O gerenciador de recursos, por sua vez, percorre iterativamente a lista de usuários ativos, concedendo processamento conforme a disponibilidade a cada um em sequência, encerrando um ciclo ao atingir o final da lista e reiniciando-o a partir do início. Assim, cada usuário tem um acesso ao processamento por ciclo, tornando a distribuição de acesso mais coesa.
 
