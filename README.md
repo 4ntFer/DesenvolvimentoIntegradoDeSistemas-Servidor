@@ -101,5 +101,10 @@ Em geral esse problema costuma ser tratado como uma fila, porém identificamos u
 
 Por isso desenvolvemos uma solução diferente baseada no algoritmo de Round-Robin que evita esse problema. Nesse modelo, o servidor armazena uma lista de usuários ativos e associa a cada usuário da lista uma fila de requisiçÕes. O gerenciador de recursos, por sua vez, percorre iterativamente a lista de usuários ativos, concedendo processamento conforme a disponibilidade a cada um em sequência, encerrando um ciclo ao atingir o final da lista e reiniciando-o a partir do início. Assim, cada usuário tem um acesso ao processamento por ciclo, tornando a distribuição de acesso mais coesa.
 
+<br/>
+
+<img width= "40%" src="https://raw.githubusercontent.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/main/readmedis/roundRobinEXE.gif"/> <sub>
+
+<br/>
 
 ###### Todos os testes foram realizados em um computador com Ryzen 1600af, Geforce GTX 1050 TI e 16 gb de ram
