@@ -26,6 +26,7 @@
 #### A imagem resultante dela é:
 
 <img width= "30%" src="https://raw.githubusercontent.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/main/readmedis/resultimgexemple.png"/>
+<br/>
 
 ## Algoritmos
 
@@ -34,12 +35,21 @@
 1. *Conjugate Gradient Normal Residual* (CGNR)
    #### Segue o algortimo:
    <img width= "40%" src="https://raw.githubusercontent.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/main/readmedis/cgnralg.png"/>
+   
+   <br/>
+
+   <br/>
 2. *Conjugate Gradient Method Normal Error* (CGNE)
    #### Segue o algortimo:
    <img width= "40%" src="https://raw.githubusercontent.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/main/readmedis/cgnealg.png"/>
+   
+   <br/>
+
+   <br/>
 
 #### Foi considerado ponto de convergência o momento em que o erro é menor que 1e10-4. Onde:
 ![image](https://github.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/assets/121190153/ca23bab5-f3bf-45cb-ba68-664588dab7d6)
+<br/>
 
 
 ## Escolha da biblioteca de operações linerares
@@ -59,6 +69,24 @@
 #### A escolha de usar o protocolo HTTP para fazer a comunicação entre cliente e servidor se deu pelo fato de o lado cliente ser uma aplicação de navegador, assim, não oferecendo suporte para a manipulação de sockets TCP.
 
 ## Tratamente de requisição do cliente
+
+#### Ao receber uma solicitação do cliente, o servidor inicia uma thread dedicada para seu processamento. Essa thread tem a responsabilidade de desserializar o documento JSON recebido e verificar a validade da requisição. Se a requisição for considerada válida, a thread a coloca na fila do gerenciador de recursos utilizando um método público do mesmo, ao qual é passada a requisição e uma referência para a thread. Em seguida a thread entra em um estado de espera, adormecendo até ser notificada pelo gerenciador de recursos.
+
+<br/>
+
+<img width= "100%" src="https://raw.githubusercontent.com/4ntFer/DesenvolvimentoIntegradoDeSistemas-Servidor/main/readmedis/diagramaDeEstadosConcorrentes.png"/>
+
+###### Diagrama de tarefas concorrente de HandleCliente e ResoucesManager.
+
+<br/>
+
+#### Ao retomar a execução, a thread de tratamento procede ao processamento da imagem conforme especificado e, ao concluir, envia a resposta ao cliente. No caso de a requisição ser considerada inválida, o servidor responde ao cliente com o código de erro 404.
+
+# Gerenciamento de Recursos
+
+#### Em geral esse problema é tratado como uma fila, porém identificamos um problema não trivial nessa implementação ocasionado pelo acesso do usuário ao servidor. Basicamente, se um usuário realizar varias requisições consecutivas ele poderia monopolizar o processamento por um longo período de tempo, resultando em uma lentidão na resposta para aqueles usuários que fizessem requisições após isso.
+
+#### Por isso desenvolvemos uma solução diferente baseada no algoritmo de Round-Robin que evita esse problema. Nesse modelo, o servidor armazena uma lista de usuários ativos e associa a cada usuário da lista uma fila de requisiçÕes. O gerenciador de recursos, por sua vez, percorre iterativamente a lista de usuários ativos, concedendo processamento conforme a disponibilidade a cada um em sequência, encerrando um ciclo ao atingir o final da lista e reiniciando-o a partir do início. Assim, cada usuário tem um acesso ao processamento por ciclo, tornando a distribuição de acesso mais coesa.
 
 
 ###### Todos os testes foram realizados em um computador com Ryzen 1600af, Geforce GTX 1050 TI e 16 gb de ram
