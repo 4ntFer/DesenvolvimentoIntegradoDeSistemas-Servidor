@@ -54,7 +54,7 @@
 
 ## Escolha da biblioteca de operações linerares
 
-#### Apesar de existirem bibliotecas mais eficiente como a ojAlgo, foi optado pela utilização da bliblioteca JBLAS, pela sua facilidade e ampla documentação.
+#### Apesar de existirem bibliotecas mais eficientes como a ojAlgo, foi optado pela utilização da bliblioteca JBLAS, pela sua facilidade e ampla documentação.
 
 # Integração entre cliente e servidor
 
